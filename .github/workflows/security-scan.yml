@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   scan:
@@ -43,14 +42,6 @@ jobs:
           python3 .github/scripts/mcp_scan_summary.py
           cat scan-summary.md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Comment on PR
-        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          test -s scan-summary.md || exit 0
-          gh pr comment "${{ github.event.pull_request.number }}" \
-            --body-file scan-summary.md --edit-last --create-if-none
 
       - name: Upload report
         if: always()
