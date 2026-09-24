@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Final
+from urllib.parse import urlsplit, urlunsplit
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -33,12 +34,6 @@ class PolarionConfig(BaseSettings):
     polarion_token: str = Field(
         description="Personal access token for Polarion REST API.",
     )
-    polarion_verify_ssl: bool = Field(
-        default=True,
-        description=(
-            "Verify TLS certs; False only for trusted self-signed internal instances."
-        ),
-    )
     polarion_max_requests_per_second: float = Field(
         default=_DEFAULT_MAX_REQUESTS_PER_SECOND,
         ge=0,
@@ -58,6 +53,26 @@ class PolarionConfig(BaseSettings):
             return _DEFAULT_MAX_REQUESTS_PER_SECOND
         return value
 
+    @field_validator("polarion_url")
+    @classmethod
+    def _https_origin_only(cls, value: str) -> str:
+        """Accept HTTPS origin only; credentials and URL components are unsafe."""
+        parsed = urlsplit(value)
+        if (
+            parsed.scheme != "https"
+            or not parsed.netloc
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.path.rstrip("/")
+            or parsed.query
+            or parsed.fragment
+        ):
+            msg = (
+                "must be an HTTPS origin without credentials, path, query, or fragment"
+            )
+            raise ValueError(msg)
+        return urlunsplit(("https", parsed.netloc, "", "", ""))
+
     @field_validator("polarion_max_requests_per_second", mode="after")
     @classmethod
     def _rate_not_below_floor(cls, value: float) -> float:
@@ -74,4 +89,4 @@ class PolarionConfig(BaseSettings):
     @property
     def base_api_url(self) -> str:
         """Full REST API v1 base URL."""
-        return f"{self.polarion_url.rstrip('/')}/polarion/rest/v1"
+        return f"{self.polarion_url}/polarion/rest/v1"

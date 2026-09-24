@@ -105,7 +105,8 @@ class PolarionClient:
                 "Accept": "application/json",
             },
             timeout=httpx.Timeout(_DEFAULT_TIMEOUT_SECONDS),
-            verify=config.polarion_verify_ssl,
+            # TLS verification is mandatory for company distribution.
+            verify=True,
         )
         # Lazy-bound to running loop; serialize all calls; not reentrant.
         self._request_lock: asyncio.Lock | None = None

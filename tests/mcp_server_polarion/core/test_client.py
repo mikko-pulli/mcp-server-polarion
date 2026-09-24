@@ -1193,17 +1193,19 @@ class TestConfigWiring:
         )
         assert config.base_api_url == "https://example.com/polarion/rest/v1"
 
-    def test_verify_ssl_default_true_passed_to_httpx(self) -> None:
+    def test_tls_verification_is_always_enabled(self) -> None:
         with patch("mcp_server_polarion.core.client.httpx.AsyncClient") as spy:
             PolarionClient(_config())
         assert spy.call_args.kwargs["verify"] is True
 
-    def test_verify_ssl_false_passed_to_httpx(self) -> None:
-        config = PolarionConfig(
-            polarion_url="https://polarion.example.com",
-            polarion_token="test-token",
-            polarion_verify_ssl=False,
+
+async def test_critical_mocked_projects_read_path() -> None:
+    """A representative read stays fully mocked and sends bearer auth only in HTTP."""
+    with respx.mock(base_url=BASE) as mock:
+        route = mock.get("/projects").mock(
+            return_value=httpx.Response(200, json={"data": []}),
         )
-        with patch("mcp_server_polarion.core.client.httpx.AsyncClient") as spy:
-            PolarionClient(config)
-        assert spy.call_args.kwargs["verify"] is False
+        async with PolarionClient(_config(), write_delay=0, min_interval=0) as client:
+            assert await client.get("/projects") == {"data": []}
+    assert route.called
+    assert route.calls.last.request.headers["authorization"] == "Bearer test-token"

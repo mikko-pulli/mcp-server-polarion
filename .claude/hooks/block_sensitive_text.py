@@ -212,7 +212,7 @@ def load_patterns() -> list[re.Pattern[str]] | None:
     if not path.exists():
         return []
     try:
-        lines = path.read_text().splitlines()
+        lines = path.read_text(encoding="utf-8").splitlines()
     except (OSError, UnicodeDecodeError):
         # Undecodable = broken install, same class as unreadable.
         return None

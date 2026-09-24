@@ -50,19 +50,7 @@ class TestPolarionConfigLoading:
         with pytest.raises(ValidationError):
             PolarionConfig(_env_file=None)  # type: ignore[call-arg]
 
-    def test_verify_ssl_defaults_to_true(
-        self,
-        monkeypatch: pytest.MonkeyPatch,
-    ) -> None:
-        monkeypatch.delenv("POLARION_VERIFY_SSL", raising=False)
-        config = PolarionConfig(
-            polarion_url="https://example.com",
-            polarion_token="t",
-            _env_file=None,  # type: ignore[call-arg]
-        )
-        assert config.polarion_verify_ssl is True
-
-    def test_verify_ssl_reads_from_env(
+    def test_verify_ssl_environment_variable_is_ignored(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
@@ -71,7 +59,25 @@ class TestPolarionConfigLoading:
         monkeypatch.setenv("POLARION_VERIFY_SSL", "false")
 
         config = PolarionConfig()  # type: ignore[call-arg]
-        assert config.polarion_verify_ssl is False
+        assert not hasattr(config, "polarion_verify_ssl")
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "http://example.com",
+            "https://user:password@example.com",
+            "https://example.com/polarion",
+            "https://example.com?query=value",
+            "https://example.com#fragment",
+        ],
+    )
+    def test_rejects_non_origin_or_insecure_url(self, url: str) -> None:
+        with pytest.raises(ValidationError, match="HTTPS origin"):
+            PolarionConfig(
+                polarion_url=url,
+                polarion_token="t",
+                _env_file=None,  # type: ignore[call-arg]
+            )
 
 
 class TestMaxRequestsPerSecond:
@@ -194,13 +200,6 @@ class TestBaseApiUrl:
     def test_base_api_url_strips_single_trailing_slash(self) -> None:
         config = PolarionConfig(
             polarion_url="https://polarion.corp.com/",
-            polarion_token="t",
-        )
-        assert config.base_api_url == "https://polarion.corp.com/polarion/rest/v1"
-
-    def test_base_api_url_strips_multiple_trailing_slashes(self) -> None:
-        config = PolarionConfig(
-            polarion_url="https://polarion.corp.com///",
             polarion_token="t",
         )
         assert config.base_api_url == "https://polarion.corp.com/polarion/rest/v1"

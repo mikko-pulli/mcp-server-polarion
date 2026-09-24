@@ -75,8 +75,7 @@ class TestLifespan:
                     pass
 
             mock_logger.info.assert_any_call(
-                "Connecting to Polarion at %s",
-                _FAKE_ENV["POLARION_URL"],
+                "Connecting to configured Polarion HTTPS origin",
             )
 
     async def test_lifespan_client_has_correct_base_url(self) -> None:

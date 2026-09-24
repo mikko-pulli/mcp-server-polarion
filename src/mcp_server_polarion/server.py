@@ -36,13 +36,7 @@ async def _lifespan(
     """Open one shared ``PolarionClient`` for all tools; close on shutdown."""
     setup_logging()
     config = PolarionConfig()  # type: ignore[call-arg]
-    logger.info("Connecting to Polarion at %s", config.polarion_url)
-    if not config.polarion_verify_ssl:
-        logger.warning(
-            "TLS certificate verification is DISABLED (POLARION_VERIFY_SSL=false). "
-            "Connections to %s are vulnerable to MITM. Use only on trusted networks.",
-            config.polarion_url,
-        )
+    logger.info("Connecting to configured Polarion HTTPS origin")
     # Effective cap only observable here — misread env silently pace wrong.
     rate = config.polarion_max_requests_per_second
     if rate:

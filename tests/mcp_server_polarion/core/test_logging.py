@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import sys
 
-from mcp_server_polarion.core.logging import setup_logging
+from mcp_server_polarion.core.logging import redact_sensitive_text, setup_logging
 
 
 class TestSetupLogging:
@@ -41,3 +41,11 @@ class TestSetupLogging:
         handler_count = len(logger.handlers)
         setup_logging()
         assert len(logger.handlers) == handler_count
+
+
+def test_redacts_token_and_credential_bearing_url() -> None:
+    text = "Bearer secret-token https://user:password@example.com POLARION_TOKEN=x"
+    redacted = redact_sensitive_text(text)
+    assert "secret-token" not in redacted
+    assert "user:password" not in redacted
+    assert "POLARION_TOKEN=x" not in redacted
