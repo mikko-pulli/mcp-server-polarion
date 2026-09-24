@@ -54,6 +54,18 @@ def _case(
 
 CASES: list[Case] = [
     _case(
+        "TRIG-WI-TEST-STEPS",
+        f"Show the Test Steps for test case '{TESTCASE_ID}' in project '{PROJECT}'.",
+        "triggers_tool",
+        intent=(
+            "A request for a test case Test Steps grid must call the "
+            "dedicated list tool."
+        ),
+        covers=["list_work_item_test_steps"],
+        expect="list_work_item_test_steps",
+        reject=["get_work_item", "read_work_item"],
+    ),
+    _case(
         "TRIG-WI-TO-DOC",
         f"Add a new requirement work item titled 'Login latency budget' "
         f"into the document '{DOC}' in space '{SPACE}'.",

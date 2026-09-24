@@ -69,6 +69,28 @@ PARENT_REQ_ID = "MCPT-400"  # in FakeParentDoc
 UNCOVERED_REQ_ID = "MCPT-301"  # in FakeDoc; no test-case link (coverage-gap signal)
 TESTCASE_ID = "MCPT-500"  # test case linked from CHILD_REQ_ID
 
+# Test Steps resource rows: (index, ((configured-key, content type, content), ...)).
+TESTCASE_TEST_STEPS: tuple[tuple[str, tuple[tuple[str, str, str], ...]], ...] = (
+    (
+        "1",
+        (
+            ("step", "text/html", "<p>Open the login page.</p>"),
+            ("description", "text/html", "<p>Use a valid test account.</p>"),
+            ("expectedResult", "text/html", "<p>Login form is visible.</p>"),
+            ("evidence", "text/plain", "Screenshot"),
+        ),
+    ),
+    (
+        "2",
+        (
+            ("step", "text/html", "<p>Submit credentials.</p>"),
+            ("description", "text/plain", "Select Sign in."),
+            ("expectedResult", "text/html", "<p>Dashboard opens.</p>"),
+            ("evidence", "text/plain", "Session ID"),
+        ),
+    ),
+)
+
 # Section A heading part id served by read_document_parts; anchor positional moves.
 SECTION_A_PART_ID = f"heading_{DOC_HEADING_ID}"
 

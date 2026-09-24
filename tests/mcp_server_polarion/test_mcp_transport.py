@@ -41,6 +41,7 @@ _READ_TOOL_NAMES: frozenset[str] = frozenset(
         "get_html_recipes",
         "get_work_item",
         "read_work_item",
+        "list_work_item_test_steps",
         "list_work_item_links",
         "list_document_comments",
         "list_work_item_comments",
@@ -522,3 +523,55 @@ class TestReadmeToolTable:
             f"README claims {claims[0]} tools; registered {len(EXPECTED_TOOL_NAMES)} — "
             f"update the '**N tools**' line"
         )
+
+
+class TestTestStepTransport:
+    """Test Steps reader reaches MCP transport with structured cells."""
+
+    async def test_list_work_item_test_steps_round_trip(
+        self, mcp_client: _MCPClient
+    ) -> None:
+        with respx.mock(base_url=_BASE, assert_all_called=False) as mock:
+            mock.get("/projects/P1/workitems/TC-1/teststeps").mock(
+                return_value=httpx.Response(
+                    200,
+                    json={
+                        "data": [
+                            {
+                                "type": "teststeps",
+                                "id": "P1/TC-1/1",
+                                "attributes": {
+                                    "index": "1",
+                                    "keys": ["step", "expectedResult"],
+                                    "values": [
+                                        {"type": "text/html", "value": "<p>Open</p>"},
+                                        {
+                                            "type": "text/html",
+                                            "value": "<p>Ready</p>",
+                                        },
+                                    ],
+                                },
+                            }
+                        ],
+                        "meta": {"totalCount": 1},
+                    },
+                )
+            )
+            result = await mcp_client.call_tool(
+                "list_work_item_test_steps",
+                {"project_id": "P1", "work_item_id": "TC-1"},
+            )
+
+        body = result.structured_content
+        assert body is not None
+        assert body["page_size"] == 20
+        assert body["items"] == [
+            {
+                "id": "P1/TC-1/1",
+                "index": "1",
+                "cells": [
+                    {"key": "step", "value": "Open"},
+                    {"key": "expectedResult", "value": "Ready"},
+                ],
+            }
+        ]

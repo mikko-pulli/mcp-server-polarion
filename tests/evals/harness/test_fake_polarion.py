@@ -1937,3 +1937,29 @@ class TestOrchestrationSeeding:
         assert response.status_code == 200
         ids = [o["id"] for o in _json(response)["data"]["attributes"]["options"]]
         assert "relates_to" in ids
+
+
+class TestTestStepReads:
+    def test_test_case_steps_paginate_and_preserve_configured_columns(self) -> None:
+        response = _get(
+            FakePolarion(),
+            f"/projects/{PROJECT}/workitems/{TESTCASE_ID}/teststeps",
+            **{"page[size]": "1", "page[number]": "1"},
+        )
+
+        payload = _json(response)
+        assert response.status_code == 200
+        assert payload["meta"]["totalCount"] == 2
+        assert payload["data"][0]["attributes"]["keys"] == [
+            "step",
+            "description",
+            "expectedResult",
+            "evidence",
+        ]
+
+    def test_unknown_work_item_test_steps_return_not_found(self) -> None:
+        response = _get(
+            FakePolarion(),
+            f"/projects/{PROJECT}/workitems/MCPT-9999/teststeps",
+        )
+        assert response.status_code == 404

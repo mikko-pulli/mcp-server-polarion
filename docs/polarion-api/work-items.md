@@ -7,6 +7,7 @@ Work item query, delete, document-membership, and link contracts. Read before to
 | Method | Path | Notes |
 |---|---|---|
 | GET | `projects/{p}/workitems` | `query=linkedWorkItems:{wi}` is the only back-link direction |
+| GET | `projects/{p}/workitems/{wi}/teststeps` | Paginated Test Steps rows; request `index,keys,values` |
 | DELETE | `projects/{p}/workitems` | 204 with a `{"data": [...]}` body |
 | DELETE | `projects/{p}/workitems/{wi}` | 405 — the single-resource form does not exist |
 | GET | `projects/{p}/workitems/{wi}/backlinkedworkitems` | unsupported |
@@ -18,6 +19,7 @@ Work item query, delete, document-membership, and link contracts. Read before to
 ## Read contract
 
 - Back-links come from `query=linkedWorkItems:{wi}`, and those results carry `role=None` — the role is not recoverable in that direction.
+- Test Steps rows pair `attributes.keys` and `attributes.values` by position. Each rich-text value is `text/html`; preserve configured keys and treat unequal arrays as malformed.
 
 ## Write contract
 

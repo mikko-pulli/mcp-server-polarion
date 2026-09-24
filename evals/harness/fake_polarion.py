@@ -30,6 +30,7 @@ from .fixtures import (
     SPACE,
     TEST_RUN_ID,
     TESTCASE_ID,
+    TESTCASE_TEST_STEPS,
     TS,
     WORKITEM_ATTACHMENT_CONTENT,
     Attachment,
@@ -145,6 +146,26 @@ class FakePolarion:
             },
             "relationships": relationships,
         }
+
+    def _test_step_resources(self, work_item_id: str) -> list[dict[str, Any]]:
+        """Configured Test Steps rows for the seeded test case."""
+        if work_item_id != TESTCASE_ID:
+            return []
+        return [
+            {
+                "type": "teststeps",
+                "id": f"{PROJECT}/{work_item_id}/{index}",
+                "attributes": {
+                    "index": index,
+                    "keys": [key for key, _, _ in cells],
+                    "values": [
+                        {"type": content_type, "value": value}
+                        for _, content_type, value in cells
+                    ],
+                },
+            }
+            for index, cells in TESTCASE_TEST_STEPS
+        ]
 
     def _test_run_resource(self, tr: TestRun) -> dict[str, Any]:
         return {
@@ -468,6 +489,22 @@ class FakePolarion:
                 },
             )
 
+        test_steps = re.search(r"/workitems/([^/]+)/teststeps$", path)
+        if test_steps:
+            work_item_id = test_steps.group(1)
+            if work_item_id not in self.seeds.work_items:
+                return httpx.Response(404, json={"errors": [{"status": "404"}]})
+            resources = self._test_step_resources(work_item_id)
+            page_size = int(params.get("page[size]", str(DEFAULT_PAGE_SIZE)))
+            page_number = int(params.get("page[number]", "1"))
+            start = (page_number - 1) * page_size
+            return httpx.Response(
+                200,
+                json={
+                    "data": resources[start : start + page_size],
+                    "meta": {"totalCount": len(resources)},
+                },
+            )
         single_wi = re.search(r"/workitems/([^/]+)$", path)
         if single_wi and "/fields/" not in path:
             wi = self.seeds.work_items.get(single_wi.group(1))

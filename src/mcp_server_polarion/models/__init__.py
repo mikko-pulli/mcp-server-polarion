@@ -62,6 +62,7 @@ from mcp_server_polarion.models.test_runs import (
     TestRunsUpdateResult,
     TestRunUpdateSpec,
 )
+from mcp_server_polarion.models.test_steps import TestStep, TestStepCell
 from mcp_server_polarion.models.work_items import (
     Hyperlink,
     WorkItemCreateSpec,
@@ -110,6 +111,8 @@ __all__: list[str] = [
     "TestRunUpdateSpec",
     "TestRunsCreateResult",
     "TestRunsUpdateResult",
+    "TestStep",
+    "TestStepCell",
     "WorkItemAttachmentSpec",
     "WorkItemCommentSpec",
     "WorkItemCreateSpec",

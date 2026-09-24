@@ -15,6 +15,7 @@ import mcp_server_polarion.tools.projects
 import mcp_server_polarion.tools.recipes
 import mcp_server_polarion.tools.test_records
 import mcp_server_polarion.tools.test_runs
+import mcp_server_polarion.tools.test_steps
 import mcp_server_polarion.tools.work_items  # noqa: F401
 
 # Empty: tools register via import side effect, not name export.

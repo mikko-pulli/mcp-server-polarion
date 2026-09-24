@@ -549,7 +549,8 @@ async def get_work_item(
 
     include_description_html=True fills description_html with raw HTML — the
     required source for update_work_items description_html. Never feed back
-    a blanked (flag=False) body.
+    a blanked (flag=False) body. For a Test Steps grid, use
+    list_work_item_test_steps.
     """
     client = get_client(ctx)
     path = (
@@ -610,7 +611,8 @@ async def read_work_item(
 
     Synthesis output — collapses Polarion anchors; NEVER feed it to
     update_work_items. Edits round-trip via
-    get_work_item(include_description_html=True) instead.
+    get_work_item(include_description_html=True) instead. For a Test Steps
+    grid, use list_work_item_test_steps.
     """
     # Pull raw HTML from get_work_item — conversion need no second round trip.
     detail = await get_work_item(

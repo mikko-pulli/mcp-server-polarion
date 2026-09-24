@@ -18,6 +18,8 @@ from mcp_server_polarion.models import (
     TestRecordSummary,
     TestRunDetail,
     TestRunSummary,
+    TestStep,
+    TestStepCell,
     WorkItemDetail,
     WorkItemLink,
     WorkItemSummary,
@@ -29,6 +31,7 @@ from mcp_server_polarion.tools._shared.custom_fields import (
 )
 from mcp_server_polarion.tools._shared.helpers import safe_float, safe_str
 from mcp_server_polarion.tools._shared.pagination import make_page
+from mcp_server_polarion.utils import html_to_markdown
 
 
 class WorkItemSummaryKwargs(TypedDict):
@@ -639,6 +642,63 @@ def parse_attachments_page(
     return make_page(attachment_items, response, page_number, page_size)
 
 
+def _parse_test_step_cell(key: object, value: object, position: int) -> TestStepCell:
+    """One paired Test Steps key/value; malformed rows fail loud."""
+    if not isinstance(key, str):
+        raise RuntimeError(f"Test Step cell {position} has a non-string key.")
+    if not isinstance(value, dict):
+        raise RuntimeError(f"Test Step cell '{key}' has a malformed value.")
+
+    raw_value = safe_str(value.get("value", ""))
+    value_type = value.get("type")
+    rendered = html_to_markdown(raw_value) if value_type == "text/html" else raw_value
+    return TestStepCell(key=key, value=rendered)
+
+
+def _parse_test_step(entry: dict[str, object]) -> TestStep:
+    """JSON:API Test Steps resource → Markdown-rendered ``TestStep``."""
+    attributes = entry.get("attributes")
+    if not isinstance(attributes, dict):
+        raise RuntimeError("Test Step resource has malformed attributes.")
+
+    keys = attributes.get("keys")
+    values = attributes.get("values")
+    if not isinstance(keys, list) or not isinstance(values, list):
+        raise RuntimeError("Test Step resource must contain keys and values arrays.")
+    if len(keys) != len(values):
+        raise RuntimeError(
+            "Test Step resource has unequal keys and values arrays; cannot "
+            "safely pair its cells."
+        )
+
+    return TestStep(
+        id=safe_str(entry.get("id", "")),
+        index=safe_str(attributes.get("index", "")),
+        cells=[
+            _parse_test_step_cell(key, value, position)
+            for position, (key, value) in enumerate(
+                zip(keys, values, strict=True), start=1
+            )
+        ],
+    )
+
+
+def parse_test_steps_page(
+    response: dict[str, object], page_number: int, page_size: int
+) -> PaginatedResult[TestStep]:
+    """JSON:API Test Steps response → Markdown-rendered paginated rows."""
+    raw_data = response.get("data", [])
+    if not isinstance(raw_data, list):
+        raise RuntimeError("Test Steps response data must be an array.")
+
+    return make_page(
+        [_parse_test_step(entry) for entry in raw_data if isinstance(entry, dict)],
+        response,
+        page_number,
+        page_size,
+    )
+
+
 def parse_enum_option(entry: dict[str, object]) -> EnumOption:
     """JSON:API enumeration entry → ``EnumOption``; non-bool flags coerce to False."""
 
@@ -670,6 +730,7 @@ __all__: list[str] = [
     "parse_included_user_name_map",
     "parse_included_work_item_map",
     "parse_test_record_detail",
+    "parse_test_steps_page",
     "parse_work_item_detail",
     "parse_work_item_summaries",
     "parse_work_item_summary_kwargs",
