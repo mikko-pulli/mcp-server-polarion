@@ -6,7 +6,8 @@ API contract quirks: docs/polarion-api/work-items.md
 from __future__ import annotations
 
 import logging
-from typing import cast
+import re
+from typing import Annotated, cast
 from urllib.parse import urlencode
 
 from fastmcp import Context
@@ -71,6 +72,45 @@ from mcp_server_polarion.utils import (
 )
 
 logger = logging.getLogger("mcp_server_polarion.tools.work_items")
+
+
+def _work_item_detail_fields(
+    custom_field_ids: list[str] | None, *, include_description_html: bool
+) -> str:
+    """Keep legacy wildcard; explicit selection use sparse attributes/relations."""
+    if custom_field_ids is None:
+        return WORK_ITEM_DETAIL_FIELDS
+    reserved = STANDARD_WORK_ITEM_ATTRIBUTES | {
+        "module",
+        "author",
+        "assignee",
+        "customFields",
+    }
+    for field_id in custom_field_ids:
+        if (
+            not isinstance(field_id, str)
+            or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_-]*", field_id) is None
+            or field_id in reserved
+        ):
+            raise ValueError("custom_field_ids must contain only custom field IDs")
+    fields = [
+        "title",
+        "type",
+        "status",
+        "priority",
+        "updated",
+        "created",
+        "resolution",
+        "severity",
+        "outlineNumber",
+        "hyperlinks",
+        "module",
+        "author",
+        "assignee",
+    ]
+    if include_description_html:
+        fields.append("description")
+    return ",".join(dict.fromkeys([*fields, *custom_field_ids]))
 
 
 def _build_work_item_resource(
@@ -544,6 +584,12 @@ async def get_work_item(
         default=False,
         description="Fill description_html with raw HTML for round-trip editing.",
     ),
+    custom_field_ids: Annotated[
+        list[str] | None,
+        Field(
+            description="Omit/null for all custom fields; [] for none; IDs to select."
+        ),
+    ] = None,
 ) -> WorkItemDetail:
     """Get full details of one work item by ID.
 
@@ -551,7 +597,13 @@ async def get_work_item(
     required source for update_work_items description_html. Never feed back
     a blanked (flag=False) body. For a Test Steps grid, use
     list_work_item_test_steps.
+
+    custom_field_ids selects inline custom fields; omitted means all.
+    Missing selected keys do not establish that a field is empty or absent.
     """
+    fields = _work_item_detail_fields(
+        custom_field_ids, include_description_html=include_description_html
+    )
     client = get_client(ctx)
     path = (
         f"/projects/{encode_path_segment(project_id)}"
@@ -561,7 +613,7 @@ async def get_work_item(
         response = await client.get(
             path,
             params={
-                "fields[workitems]": WORK_ITEM_DETAIL_FIELDS,
+                "fields[workitems]": fields,
                 "include": "assignee,author",
                 "fields[users]": "name",
             },
@@ -592,8 +644,19 @@ async def get_work_item(
         user_names=parse_included_user_name_map(response),
     )
     if not include_description_html:
-        # Body always travel over wire; blank it per the False contract.
+        # Legacy wildcard still fetch body; False contract always blank it.
         detail = detail.model_copy(update={"description_html": ""})
+    if custom_field_ids is not None:
+        # Defend against servers returning more than requested sparse fields.
+        detail = detail.model_copy(
+            update={
+                "custom_fields": {
+                    key: value
+                    for key, value in detail.custom_fields.items()
+                    if key in custom_field_ids
+                }
+            }
+        )
     return detail
 
 
@@ -606,6 +669,12 @@ async def read_work_item(
     ctx: Context,
     project_id: str = Field(description="Polarion project ID."),
     work_item_id: str = Field(description="Work item ID (e.g. 'MCPT-001')."),
+    custom_field_ids: Annotated[
+        list[str] | None,
+        Field(
+            description="Omit/null for all custom fields; [] for none; IDs to select."
+        ),
+    ] = None,
 ) -> WorkItemRead:
     """Read one work item with its body rendered as Markdown.
 
@@ -613,6 +682,9 @@ async def read_work_item(
     update_work_items. Edits round-trip via
     get_work_item(include_description_html=True) instead. For a Test Steps
     grid, use list_work_item_test_steps.
+
+    custom_field_ids selects inline custom fields; omitted means all.
+    Missing selected keys do not establish that a field is empty or absent.
     """
     # Pull raw HTML from get_work_item — conversion need no second round trip.
     detail = await get_work_item(
@@ -620,6 +692,7 @@ async def read_work_item(
         project_id=project_id,
         work_item_id=work_item_id,
         include_description_html=True,
+        custom_field_ids=custom_field_ids,
     )
     description = (
         html_to_markdown(detail.description_html) if detail.description_html else ""

@@ -46,6 +46,13 @@ Other clients (VS Code, Claude Desktop, Cursor) — see [Client Configuration](#
 
 ## Tools
 
+Work-item get/read tools accept `custom_field_ids`: omit it (or pass `null`) to
+retain all custom fields, pass `[]` for standard metadata/body only, or supply
+custom field IDs to select their values. Explicit selections use sparse backend
+fields and exclude unrelated custom values from the response. Missing selected
+keys do not prove that a field is empty or absent. Raw HTML round-trip and Markdown
+read behavior remain unchanged.
+
 ### Read
 
 <!-- tool-table:read:start -->
