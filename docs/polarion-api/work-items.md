@@ -18,6 +18,13 @@ Work item query, delete, document-membership, and link contracts. Read before to
 
 ## Read contract
 
+- `get_work_item` and `read_work_item` accept `custom_field_ids`: omitted/null keeps
+  the legacy `@all` request and all custom values; `[]` excludes custom fields; a
+  list requests those inline attribute IDs and filters out other custom values.
+  Explicit selection uses sparse fields while retaining metadata and required
+  relationships. Metadata-only explicit reads omit description upstream. Selected
+  rich-text values remain raw HTML; only the standard read body becomes Markdown.
+  Missing selected keys may be unavailable through the API and do not prove absence.
 - Back-links come from `query=linkedWorkItems:{wi}`, and those results carry `role=None` — the role is not recoverable in that direction.
 - Test Steps rows pair `attributes.keys` and `attributes.values` by position. Each rich-text value is `text/html`; preserve configured keys and treat unequal arrays as malformed.
 
@@ -39,4 +46,5 @@ Work item query, delete, document-membership, and link contracts. Read before to
 
 | Date | Scope |
 |---|---|
+| 2026-11-23 | Read-only live probe: default, empty and named custom-field selections; sparse values, body and metadata preserved |
 | — | No dated probe; observed across v2506 development |
