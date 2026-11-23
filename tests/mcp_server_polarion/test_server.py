@@ -29,6 +29,13 @@ class TestMcpInstance:
         assert mcp.instructions is not None
         assert "Polarion" in mcp.instructions
 
+    def test_icon_preserves_wire_aliases(self) -> None:
+        assert mcp.icons is not None
+        icon = mcp.icons[0].model_dump(by_alias=True, exclude_none=True)
+        assert icon["mimeType"] == "image/png"
+        assert icon["sizes"] == ["512x512"]
+        assert str(icon["src"]).endswith("/.github/assets/icon.png")
+
 
 class TestLifespan:
     """Lifespan context manager."""
