@@ -61,7 +61,11 @@ mcp = FastMCP(
         "MCP server for Polarion ALM. "
         "Read and write documents and work items in Polarion."
     ),
-    icons=[Icon(src=ICON_URL, mimeType="image/png", sizes=["512x512"])],
+    icons=[
+        Icon.model_validate(
+            {"src": ICON_URL, "mimeType": "image/png", "sizes": ["512x512"]}
+        )
+    ],
     lifespan=_lifespan,
 )
 mcp.add_middleware(CompactValidationErrorMiddleware())
